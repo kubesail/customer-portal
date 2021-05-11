@@ -22,7 +22,23 @@ function Login({ setLoggedIn, platform }) {
       { method: "POST", body: { email, password } }
     );
     if (json && json.error) {
-      setFormError(json.error);
+      if (json.exists) {
+        setFormError(
+          <div>
+            A customer with that email already exists{" "}
+            <button
+              className="plain"
+              onClick={() => {
+                setAction("login");
+              }}
+            >
+              Login?
+            </button>
+          </div>
+        );
+      } else {
+        setFormError(json.error);
+      }
     } else {
       setFormError("");
       setLoggedIn(true);

@@ -14,8 +14,10 @@ class App extends Component {
   state = {
     profile: null,
     platform: null,
-    progress: 0,
     progressMessage: "",
+    docsReady: 0,
+    expectedNumberOfDocs: 1,
+    progressing: false,
     resources: [],
   };
 
@@ -75,7 +77,17 @@ class App extends Component {
 
     const socket = this.createSocket();
 
-    if (json?.customer?.platformCustomerPlanTemplates) {
+    let expectedNumberOfDocs = 0;
+    for (const customerPlanTemplates of json?.customer
+      ?.platformCustomerPlanTemplates || []) {
+      if (customerPlanTemplates?.templateRevision?.numDocs) {
+        expectedNumberOfDocs += customerPlanTemplates.templateRevision.numDocs;
+      }
+    }
+
+    console.log("json?.customer", json?.customer);
+
+    if (json?.customer?.platformPlans.length) {
       socket.emit("watch-resources");
     }
 
@@ -92,35 +104,63 @@ class App extends Component {
           return r;
         });
       }
-      let newPercentComplete = 0;
+      let docsReady = 0;
       let progressMessage = "";
       for (let i = 0; i < resources.length; i++) {
         const resource = resources[i];
         if (resource.kind === "PersistentVolumeClaim") {
           if (resource.status.phase !== "Bound") {
+            console.log("Doc is not ready!", resource?.kind, resource?.name);
             progressMessage = "Provisioning storage...";
             break;
           }
         } else if (resource.kind === "Deployment") {
           if (resource.status.availableReplicas < 1) {
+            console.log("Doc is not ready!", resource?.kind, resource?.name);
             progressMessage = "Launching your app...";
             break;
           }
-        } else {
+        } else if (resource.kind === "Certificate") {
+          if (!resource?.status?.conditions) {
+            console.log("Certificate without conditions?", { resource });
+            break;
+          }
           if (
             resource.status.conditions.find((c) => c.type === "Ready")
               .status === "False"
           ) {
-            progressMessage = "Finishing Touches...";
+            console.log("Doc is not ready!", resource?.kind, resource?.name);
+            progressMessage =
+              "Issuing SSL Certificates... This may take a moment!";
             break;
           }
+        } else if (resource.kind === "Ingress") {
+          // Ingresses are always just ready
         }
-        newPercentComplete = ((i + 1) / resources.length) * 100;
+        docsReady++;
       }
+      let progressing = false;
+      if (docsReady < expectedNumberOfDocs) {
+        progressing = true;
+      } else {
+        // Set timer so animation can play
+        setTimeout(() => {
+          this.setState({ progressing: false });
+        }, 1000);
+      }
+      // console.log("percent done:", {
+      //   resources,
+      //   progressing,
+      //   percent: (docsReady / expectedNumberOfDocs) * 100,
+      //   docsReady,
+      //   expectedNumberOfDocs,
+      // });
       this.setState({
         resources,
-        progress: newPercentComplete,
         progressMessage,
+        progressing,
+        docsReady,
+        expectedNumberOfDocs,
       });
     });
 
@@ -281,12 +321,15 @@ class App extends Component {
             )}
           </div>
           <div className="App-form">
-            {profile &&
-            this.state.progress < 100 &&
-            this.state.resources.length > 0 ? (
+            {profile && this.state.progressing ? (
               <div className="progress">
                 <div>
-                  <ProgressCircle percent={this.state.progress} />
+                  <ProgressCircle
+                    percent={
+                      (this.state.docsReady / this.state.expectedNumberOfDocs) *
+                      100
+                    }
+                  />
                 </div>
                 <div className="progress-message">
                   {this.state.progressMessage}

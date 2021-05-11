@@ -1,12 +1,11 @@
 .App {
   text-align: center;
-  max-width: 920px;
+  max-width: 1020px;
   animation-delay: 0.2s;
   animation-fill-mode: backwards;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  max-width: 920px;
   width: 100%;
 }
 
@@ -158,6 +157,7 @@
     height: 100%;
     background-color: white;
     flex: 1;
+    padding: 20px;
   }
   html,
   body,

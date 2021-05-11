@@ -82,7 +82,6 @@ button.button {
   border: none;
   width: 100%;
   max-width: 280px;
-  margin: 20px;
   border-radius: var(--input-border-radius);
 }
 
@@ -131,8 +130,21 @@ button.button {
 
 .form-error {
   color: red;
+  font-size: 14px;
+}
+
+.form-error button.plain {
+  display: inline;
+  font-size: 14px;
 }
 
 .Login input.error {
   border-color: red;
+}
+
+.Settings .updating {
+  margin: 2rem 0;
+}
+.Settings .updating .ProgressCircle-container {
+  margin: 1rem auto;
 }
